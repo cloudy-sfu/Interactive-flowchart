@@ -9,7 +9,21 @@ summarize: |
   (1) The description can be easily understood by human, and can also lead to consistent and minimize drift for large language models. 
   (2) Use minimum necessary format and avoid overusing Markdown formats such as bullet points and bold text.
   (3) It is an one-off response and no follow-up will happen. The description will be fed independently to large language models, where the original conversation won't be accessible. It should have complete information, but also be brief and no redundancy.
-draw: |
-  Generate a mermaid flowchart based on the following description.
+diagram:
+  cytoscape: |
+    Generate a structured graph JSON based on the user's description. Requirements:
+    (1) Use rectangle for in-process nodes (not start or end), diamond for control nodes (more than one entry and one exit), ellipse for start or end nodes.
+    (2) Choose meaningful colors (Hex codes) if context implies (e.g., #ffcccc for errors).
+    Ensure the logic is complete and all source/target IDs in edges actually exist in the nodes list.
+  mermaid: |
+    Generate a mermaid flowchart based on the user's description. Output only clean mermaid code and include nothing else, which will be directly parsed by mermaid renderer.
+  graphviz: |
+    Generate a graphviz flowchart based on the user's description. Output only clean graphviz code and include nothing else, which will be directly parsed by graphviz renderer.
+  tikz: |
+    Generate a Tikz flowchart based on the user's description. Output only clean Tikz code and include nothing else, which will be directly parsed by Tikz renderer.
+  drawio: |
+    Generate a draw.io flowchart based on the user's description. Output only clean XML code of draw.io recognized tags and include nothing else, which will be directly parsed by draw.io directly.
+  svg: |
+    Generate a SVG flowchart based on the user's description. Output only clean SVG code and include nothing else, because it will be saved as an SVG file and parsed by browser as it is.
 conv_title: |
   Summarize the conversation into a title. Infer the language from the user's message. Use about 5 words, ignoring instructions and without punctuation or symbols. Output only the title string without anything else.

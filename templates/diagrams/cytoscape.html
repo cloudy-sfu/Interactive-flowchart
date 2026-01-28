@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Diagram Visualization</title>
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Professional Theme */
+        body {
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background-color: #ffffff; 
+            font-family: 'Inter', sans-serif; 
+        }
+        @media (prefers-color-scheme: dark) {
+            body { background-color: transparent; }
+        }
+
+        #cy { 
+            width: 100vw; 
+            height: 100vh; 
+            display: block; 
+            /* Subtle Grid Pattern for alignment cues */
+            background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        @media (prefers-color-scheme: dark) {
+            #cy {
+                 background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+            }
+        }
+
+        /* Hidden element to force font pre-loading */
+        #font-loader {
+            font-family: 'Material Icons';
+            opacity: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .error-msg {
+            color: #d32f2f;
+            padding: 20px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid #ddd;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Trigger font download -->
+    <div id="font-loader">settings</div>
+    <div id="cy"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                var rawData = {{ graph_data_json|safe }};
+                if (!rawData) { throw new Error("No graph data provided."); }
+
+                cytoscape.use(cytoscapeDagre);
+
+                var isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var defaultEdgeColor = isDarkMode ? '#b0bec5' : '#455a64';
+
+                // --- 1. Colors & Defaults (PPT Light Theme) ---
+                function getBaseColor(shape) {
+                    // Very light pastels for background, allowing dark text
+                    switch(shape) {
+                        case 'diamond': return '#fff9c4'; // Light Yellow (Decision)
+                        case 'ellipse': return '#dcedc8'; // Light Green (Start/End)
+                        case 'triangle': return '#ffccbc'; // Light Red (Alert)
+                        case 'cylinder': return '#cfd8dc'; // Light Grey (DB)
+                        case 'pentagon': return '#e1bee7'; // Light Purple
+                        default: return '#e3f2fd';        // Light Blue (Process)
+                    }
+                }
+
+                var cyNodes = rawData.nodes.map(n => {
+                    var style = n.style || {};
+                    var shape = style.shape || 'round-rectangle';
+                    var color = style.color ? style.color : getBaseColor(shape);
+
+                    return {
+                        data: {
+                            id: n.id,
+                            label: n.label || '',
+                            icon: style.icon || null,
+                            color: color,
+                            shape: shape
+                        }
+                    };
+                });
+
+                var cyEdges = (rawData.edges || []).map((e, idx) => {
+                    var style = e.style || {};
+                    return {
+                        data: {
+                            id: 'e' + idx,
+                            source: e.source,
+                            target: e.target,
+                            label: e.label || '',
+                            lineStyle: style.line_style || 'solid',
+                            color: style.color || defaultEdgeColor
+                        }
+                    };
+                });
+
+                // --- 2. Cytoscape Config ---
+                var cy = cytoscape({
+                    container: document.getElementById('cy'),
+                    boxSelectionEnabled: false,
+                    autounselectify: true,
+                    elements: { nodes: cyNodes, edges: cyEdges },
+                    layout: {
+                        name: 'dagre',
+                        rankDir: rawData.direction || 'TB',
+                        nodeSep: 80,
+                        rankSep: 100,
+                        padding: 60
+                    },
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                // --- Visual Style ---
+                                'background-color': 'data(color)',
+                                'background-opacity': 1,
+                                'border-width': 2,
+                                'border-color': isDarkMode ? '#b0bec5' : '#37474f',
+                                'shape': 'data(shape)',
+
+                                // --- Text Styling (High Contrast) ---
+                                'label': 'data(label)',
+                                'color': '#263238', // Almost Black
+                                'font-size': '14px',
+                                'font-weight': '600',
+                                'font-family': 'Inter, sans-serif',
+
+                                // --- Alignment ---
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'text-wrap': 'wrap',
+                                'text-max-width': '140px',
+
+                                // --- Sizing ---
+                                'width': 'label',
+                                'height': 'label',
+                                'padding': '25px'
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 2,
+                                'line-color': 'data(color)',
+                                'target-arrow-color': 'data(color)',
+                                'target-arrow-shape': 'triangle',
+                                'curve-style': 'bezier',
+
+                                // --- Edge Label Styling (Horizontal) ---
+                                'label': 'data(label)',
+                                'color': '#37474f',
+                                'font-size': '11px',
+                                'font-weight': '600',
+                                'text-rotation': 'none', // Strict Horizontal
+                                'text-background-opacity': 1,
+                                'text-background-color': '#ffffff', // White bg for label
+                                'text-background-padding': '4px',
+                                'text-background-shape': 'roundrectangle',
+                                'text-border-width': 1,
+                                'text-border-color': '#cfd8dc',
+                                'line-style': 'data(lineStyle)'
+                            }
+                        }
+                    ]
+                });
+
+                // --- 3. High-Definition Icon Rendering ---
+                // Wait for font to load to prevent blank squares
+                document.fonts.ready.then(function() {
+                    cy.nodes().forEach(function(node) {
+                        var iconName = node.data('icon');
+                        if (!iconName) {
+                             // If no icon, normal centering
+                            node.style({ 'text-valign': 'center', 'padding-top': '25px' });
+                            return;
+                        }
+
+                        // --- Anti-Aliasing Logic ---
+                        // We generate the icon at a MUCH larger size (128x128)
+                        // and then display it small (32x32). This scaling down
+                        // removes the jagged edges and blurriness.
+                        var genSize = 128;
+                        var displaySize = 32;
+
+                        var canvas = document.createElement('canvas');
+                        canvas.width = genSize;
+                        canvas.height = genSize;
+                        var ctx = canvas.getContext('2d');
+
+                        // Draw Icon
+                        ctx.font = '96px "Material Icons"'; // Large font size
+                        ctx.fillStyle = '#263238'; // Dark Icon Color
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(iconName, genSize/2, genSize/2);
+
+                        var dataUrl = canvas.toDataURL();
+
+                        node.style({
+                            'background-image': dataUrl,
+                            'background-fit': 'none', // Don't stretch, use raw dimensions
+
+                            // Explicit Positioning: Top-Left
+                            'background-position-x': '8px',
+                            'background-position-y': '8px',
+                            'background-width': displaySize + 'px',
+                            'background-height': displaySize + 'px',
+
+                            // Add padding to top to push text down slightly
+                            // if needed, though center usually works fine
+                            // with corner icons.
+                            'text-valign': 'center'
+                        });
+                    });
+                });
+
+            } catch (err) {
+                document.body.innerHTML = '<div class="error-msg">Render Error: ' + err.message + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>

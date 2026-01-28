@@ -1,13 +1,61 @@
 /* Glassmorphism CSS for Bootstrap 5.3 */
 
 :root {
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    --glass-blur: 8px;
-    --glass-text: #fff;
-    --glass-input-bg: rgba(255, 255, 255, 0.1);
-    --glass-input-focus-bg: rgba(255, 255, 255, 0.2);
+    /* Default to Light Mode */
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-shadow: 0 8px 8px 0 rgba(0, 0, 0, 0.1);
+    --glass-blur: 10px;
+    --glass-text: #000;
+    --glass-input-bg: rgba(0, 0, 0, 0.05);
+    --glass-input-focus-bg: rgba(0, 0, 0, 0.08);
+    --glass-input-focus-border: rgba(0, 0, 0, 0.2);
+    --glass-input-focus-shadow: rgba(0, 0, 0, 0.1);
+    --glass-placeholder: rgba(0, 0, 0, 0.5);
+    --glass-card-header-bg: rgba(0, 0, 0, 0.03);
+    --glass-btn-hover-bg: rgba(0, 0, 0, 0.1);
+    --glass-btn-hover-border: rgba(0, 0, 0, 0.2);
+    --glass-btn-hover-text: #000;
+    --glass-btn-active-bg: rgba(0, 0, 0, 0.15);
+    --glass-modal-bg: rgba(255, 255, 255, 0.85);
+    --glass-dropdown-bg: rgba(255, 255, 255, 0.9);
+    --glass-dropdown-text: #000;
+    --glass-dropdown-hover-bg: rgba(0, 0, 0, 0.05);
+    --glass-navbar-bg: rgba(255, 255, 255, 0.7);
+    --glass-navbar-hover-text: rgba(0, 0, 0, 0.7);
+    --glass-body-bg: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --glass-shadow: 0 8px 8px 0 rgba(31, 38, 135, 0.37);
+        --glass-text: #fff;
+        --glass-input-bg: rgba(255, 255, 255, 0.1);
+        --glass-input-focus-bg: rgba(255, 255, 255, 0.2);
+        --glass-input-focus-border: rgba(255, 255, 255, 0.5);
+        --glass-input-focus-shadow: rgba(255, 255, 255, 0.15);
+        --glass-placeholder: rgba(255, 255, 255, 0.6);
+        --glass-card-header-bg: rgba(255, 255, 255, 0.05);
+        --glass-btn-hover-bg: rgba(255, 255, 255, 0.25);
+        --glass-btn-hover-border: rgba(255, 255, 255, 0.4);
+        --glass-btn-hover-text: #fff;
+        --glass-btn-active-bg: rgba(255, 255, 255, 0.3);
+        --glass-modal-bg: rgba(40, 40, 40, 0.65);
+        --glass-dropdown-bg: rgba(40, 40, 40, 0.9);
+        --glass-dropdown-text: #fff;
+        --glass-dropdown-hover-bg: rgba(255, 255, 255, 0.1);
+        --glass-navbar-bg: rgba(255, 255, 255, 0.1);
+        --glass-navbar-hover-text: rgba(255, 255, 255, 0.8);
+        --glass-body-bg: #1a1a1a;
+    }
+}
+
+body {
+    background: var(--glass-body-bg);
+    color: var(--glass-text);
+    min-height: 100vh;
 }
 
 .glass {
@@ -24,19 +72,19 @@
 }
 
 /* Bootstrap Card Extension */
-.card.glass {
+.card {
     background: var(--glass-bg); /* Bootstrap cards have white bg by default */
     border-radius: 10px;
 }
 
-.card.glass .card-header,
-.card.glass .card-footer {
+.card .card-header,
+.card .card-footer {
     border-bottom: 1px solid var(--glass-border);
     border-top: 1px solid var(--glass-border);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass-card-header-bg);
 }
 
-.card.glass .card-text, .card.glass .card-title {
+.card .card-text, .card .card-title {
     color: var(--glass-text);
 }
 
@@ -51,85 +99,100 @@
 }
 
 .btn-glass:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: #fff;
+    background: var(--glass-btn-hover-bg);
+    border-color: var(--glass-btn-hover-border);
+    color: var(--glass-btn-hover-text);
 }
 
 .btn-glass:active {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--glass-btn-active-bg);
 }
 
 /* Glass Inputs */
-.form-control.glass,
-.form-select.glass {
-    background: var(--glass-input-bg);
+.form-control,
+.form-select {
+    background-color: var(--glass-input-bg);
     border: 1px solid var(--glass-border);
     color: var(--glass-text);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
 }
 
-.form-control.glass:focus,
-.form-select.glass:focus {
-    background: var(--glass-input-focus-bg);
-    border-color: rgba(255, 255, 255, 0.5);
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--glass-input-focus-bg);
+    border-color: var(--glass-input-focus-border);
     color: var(--glass-text);
-    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 0.25rem var(--glass-input-focus-shadow);
 }
 
-.form-control.glass::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+.form-control::placeholder {
+    color: var(--glass-placeholder);
 }
 
 /* Navbar support */
-.navbar.glass {
-    background: rgba(255, 255, 255, 0.1) !important;
+.navbar {
+    background: var(--glass-navbar-bg) !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--glass-border);
 }
 
-.navbar.glass .nav-link {
+.navbar .nav-link {
     color: var(--glass-text) !important;
 }
 
-.navbar.glass .nav-link:hover {
-    color: rgba(255, 255, 255, 0.8) !important;
+.navbar .nav-link:hover {
+    color: var(--glass-navbar-hover-text) !important;
 }
 
-.navbar.glass .navbar-brand {
+.navbar .navbar-brand {
     color: var(--glass-text) !important;
 }
 
 /* Modal support */
-.modal-content.glass {
-    background: rgba(40, 40, 40, 0.65); /* Darker base for modals */
+.modal-content {
+    background: var(--glass-modal-bg); /* Darker base for modals */
     border: 1px solid var(--glass-border);
 }
 
-.modal-content.glass .modal-header,
-.modal-content.glass .modal-footer {
+.modal-content .modal-header,
+.modal-content .modal-footer {
     border-color: var(--glass-border);
 }
 
 /* Dropdown menu */
-.dropdown-menu.glass {
-    background: rgba(255, 255, 255, 0.9); /* More opaque */
+.dropdown-menu {
+    background: var(--glass-dropdown-bg); /* More opaque */
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
 }
 
-.dropdown-menu.glass .dropdown-item {
-     color: #333; /* Dark text for dropdowns usually */
+.dropdown-menu .dropdown-item {
+     color: var(--glass-dropdown-text); /* Dark text for dropdowns usually */
 }
-.dropdown-menu.glass .dropdown-item:hover {
-    background: rgba(0, 0, 0, 0.1);
+.dropdown-menu .dropdown-item:hover {
+    background: var(--glass-dropdown-hover-bg);
 }
 
 /* Utility to force text color if needed */
 .text-glass {
     color: var(--glass-text) !important;
+}
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--glass-input-bg);
+    color: var(--glass-text);
+    opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+    .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    .form-select {
+        --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
 }
 
 /* Dark variant override */

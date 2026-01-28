@@ -4,7 +4,7 @@ from .models import Conversation, Message, Diagram
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
     list_display = ('owner', 'title', 'created_time', 'modified_time')
-    list_filter = ('created_time', 'modified_time')
+    list_filter = ('created_time',)
     search_fields = ('owner__username', 'title')
 
 
@@ -17,5 +17,6 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(Diagram)
 class DiagramAdmin(admin.ModelAdmin):
-    list_display = ('id', 'conversation', 'created_time')
-    list_filter = ('created_time',)
+    list_display = ('id', 'conversation', 'syntax', 'created_time')
+    list_filter = ('created_time', 'syntax')
+

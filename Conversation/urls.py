@@ -9,4 +9,5 @@ urlpatterns = [
     path('chat_stream/<int:conversation_id>/', views.chat_stream, name='chat_stream'),
     path('generate_summary/<int:conversation_id>/', views.generate_summary, name='generate_summary'),
     path('create_diagram/<int:conversation_id>/', views.create_diagram, name='create_diagram'),
+    path('diagram/<int:diagram_id>/', views.get_diagram_content, name='get_diagram_content'),
 ]

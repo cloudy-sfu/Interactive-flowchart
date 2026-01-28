@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Graphviz Diagram</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden;
+            background: rgb(255, 255, 255);
+            font-family: sans-serif;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #graph {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        /*
+           Dark Mode Handling:
+           We use a CSS filter to invert the colors in dark mode.
+           invert(1) turns black lines to white.
+           hue-rotate(180deg) preserves the original hue of colored lines.
+        */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: rgb(0, 0, 0);
+            }
+            #graph {
+                filter: invert(1) hue-rotate(180deg);
+            }
+        }
+        #graph svg {
+            background-color: transparent;
+        }
+
+        #graph svg .graph > polygon {
+            fill: transparent;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2.20.0/dist/graphviz.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-graphviz@5.6.0/build/d3-graphviz.min.js"></script>
+</head>
+<body>
+    <div id="graph"></div>
+    <div id="dot-data" style="display: none">{{ dot_code|json_script:"dot-data" }}</div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const dotDataElement = document.getElementById('dot-data');
+    if (dotDataElement) {
+        try {
+            const dotCode = JSON.parse(dotDataElement.textContent).replace(/\r/g, '');
+            const graphDiv = document.getElementById('graph');
+
+            if (window.d3 && window.d3.select && graphDiv) {
+                // Initialize graphviz
+                const graphviz = d3.select("#graph").graphviz()
+                    .options({ useWorker: false })
+                    .width(window.innerWidth)
+                    .height(window.innerHeight)
+                    .fit(true);
+
+                graphviz.renderDot(dotCode);
+
+                window.addEventListener("resize", function() {
+                    graphviz
+                        .width(window.innerWidth)
+                        .height(window.innerHeight)
+                        .fit(true)
+                        .render();
+                });
+            } else {
+                console.error("d3 or graph element not found");
+            }
+        } catch (e) {
+            console.error("Error rendering graph:", e);
+        }
+    }
+});
+
+    </script>
+</body>
+</html>

@@ -8,10 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/glassmorphism.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         body {
-            background-color: #1a1a1a;
-            color: white;
             height: 100vh;
             margin: 0;
             display: flex;
@@ -53,7 +52,7 @@
         }
         .chat-header {
             padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--glass-border);
             flex-shrink: 0;
         }
         .chat-messages {
@@ -70,10 +69,10 @@
             width: 8px;
         }
         .chat-messages::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
         .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--glass-border);
             border-radius: 4px;
         }
         .message-bubble {
@@ -91,11 +90,11 @@
         }
         /* message-ai class has citation in Jinja2, which IDE didn't recognize. */
         .message-ai {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
+            background-color: var(--glass-bg);
+            color: var(--glass-text);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
             white-space: normal;
         }
         .message-ai p {
@@ -109,17 +108,18 @@
             border-collapse: collapse;
             margin-bottom: 0.5rem;
             font-size: 0.9em;
+            color: var(--glass-text);
         }
         .message-ai th, .message-ai td {
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--glass-border);
             padding: 4px 8px;
         }
         .message-ai th {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--glass-input-bg);
         }
         .chat-input-wrapper {
             padding: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid var(--glass-border);
         }
         .chat-input-wrapper .btn {
             padding-top: 6px;
@@ -128,12 +128,19 @@
         .chat-input {
             resize: none;
             overflow: hidden;
-            background: rgba(0, 0, 0, 0.2);
+            background: var(--glass-input-bg);
+            color: var(--glass-text);
+            border: 1px solid var(--glass-border);
+        }
+        .chat-input::placeholder {
+            color: var(--glass-text);
+            opacity: 0.7;
         }
         .chat-input:focus {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--glass-input-focus-bg);
             border-color: #007bff;
             box-shadow: none;
+            color: var(--glass-text);
         }
         .diagram-container {
             display: flex;
@@ -143,14 +150,14 @@
         }
         .diagram-header {
             padding: 0.5rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .diagram-content {
             flex-grow: 1;
-            background-color: rgba(0, 0, 0, 0.2);
+            background-color: var(--glass-bg);
             border-bottom-left-radius: 10px;
             border-bottom-right-radius: 10px;
             overflow: hidden;
@@ -160,20 +167,22 @@
             width: 100%;
             height: 100%;
             border: none;
-            background-color: white;
         }
         .diagram-select {
-            background-color: rgba(0, 0, 0, 0.3);
+            background-color: var(--glass-input-bg);
+            color: var(--glass-text);
             min-width: 200px;
+            border: 1px solid var(--glass-border);
         }
         .diagram-select option {
-            background-color: #1a1a1a;
-            color: white;
+            background-color: var(--glass-dropdown-bg);
+            color: var(--glass-dropdown-text);
         }
         .diagram-select:focus {
-            background-color: rgba(0, 0, 0, 0.4);
-            border-color: #007bff;
+            background-color: var(--glass-input-focus-bg);
+            border-color: var(--glass-border);
             box-shadow: none;
+            color: var(--glass-text);
         }
         /* Responsive Breakpoints */
         @media (max-width: 991.98px) {
@@ -202,7 +211,7 @@
             <div class="col-lg-4 chat-col">
                 <div class="glass glass-rounded chat-container">
                     <div class="chat-header">
-                        <h5 class="mb-0 text-white">{{ conversation.title|default:"New Conversation" }}</h5>
+                        <h5 class="mb-0">{{ conversation.title|default:"New Conversation" }}</h5>
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         {% for message in messages %}
@@ -224,7 +233,8 @@
                     <div class="diagram-header">
                         <div class="d-flex align-items-center gap-2">
                              <span class="fw-bold">Diagram Preview</span>
-                             <select id="diagramSelect" class="form-select form-select-sm diagram-select" style="width: auto;" data-bs-theme="dark" {% if not diagrams %}disabled{% endif %}>
+                             <!-- Select list only contains IDs, content is fetched async -->
+                             <select id="diagramSelect" class="form-select form-select-sm diagram-select" style="width: auto;" {% if not diagrams %}disabled{% endif %}>
                                 {% if diagrams %}
                                     {% for diagram in diagrams %}
                                         <option value="{{ diagram.id }}" {% if forloop.last %}selected{% endif %}>Version {{ forloop.counter }}</option>
@@ -234,19 +244,34 @@
                                 {% endif %}
                             </select>
                              <button id="generateDiagramBtn" class="btn btn-sm btn-custom rounded-pill py-1 px-3">Generate Diagram</button>
+                             <div class="dropdown d-inline-block">
+                                  <button class="btn btn-sm btn-custom rounded-pill py-1 px-3 dropdown-toggle" type="button" id="downloadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Download
+                                  </button>
+                                  <ul class="dropdown-menu glass" aria-labelledby="downloadDropdown">
+                                    <li><a class="dropdown-item" href="#" id="downloadHtml">HTML</a></li>
+                                    <li><a class="dropdown-item" href="#" id="downloadSource">Source Code</a></li>
+                                    <li><a class="dropdown-item" href="#" id="downloadImage">
+                                        Picture
+                                        <span class="badge text-bg-primary">Experimental</span>
+                                    </a></li>
+                                  </ul>
+                            </div>
+
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                             <!-- Future buttons can go here -->
                              <a href="{% url 'conversation_list' %}" class="btn btn-sm btn-glass">Back</a>
                         </div>
                     </div>
-                    <div class="diagram-content" id="diagramContainer">
-                        {% if diagrams %}
-                            <iframe id="diagramFrame" class="diagram-frame" srcdoc="{{ diagrams.last.content|escape }}"></iframe>
-                        {% else %}
-                            <div class="d-flex justify-content-center align-items-center h-100">
-                                <span class="text-white-50">No Diagram</span>
-                            </div>
+                    <div class="diagram-content">
+                        <!-- Iframe starts empty, loaded by JS -->
+                        <iframe id="diagramFrame" class="diagram-frame" srcdoc=""></iframe>
+                        
+                        {% if not diagrams %}
+                        <!-- Overlay for empty state if needed, though Select logic handles most -->
+                        <div id="emptyState" class="d-flex justify-content-center align-items-center h-100 position-absolute top-0 start-0 w-100" style="pointer-events: none;">
+                            <span class="text-glass" style="opacity: 0.5;">No Diagram</span>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -257,17 +282,26 @@
     <!-- Modal -->
     <div class="modal fade" id="summaryModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
-        <div class="modal-content glass" style="background: rgba(30, 30, 30, 0.95);">
-          <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-            <h5 class="modal-title">Edit Diagram Summary</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content glass">
+          <div class="modal-header">
+            <h5 class="modal-title">Diagram description</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
              <form id="diagramForm" method="POST" action="{% url 'create_diagram' conversation.id %}">
                  {% csrf_token %}
                  <div class="mb-3">
-                     <label for="summaryText" class="form-label">Summary Description</label>
-                     <textarea class="form-control" id="summaryText" name="profile" rows="10" style="background: rgba(0, 0, 0, 0.3); color: white; border: 1px solid rgba(255, 255, 255, 0.2);"></textarea>
+                    <label for="syntaxSelect" class="form-label">Template</label>
+                     <!-- SyntaxChoice: MER=Mermaid (default), CYT=Cytoscape -->
+                    <select class="form-select diagram-select" id="syntaxSelect" name="syntax">
+                        {% for code, name in syntax_choices %}
+                        <option value="{{ code }}" {% if forloop.first %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                 </div>
+                 <div class="mb-3">
+                     <label for="summaryText" class="form-label"><i>Read the diagram description and edit as you want.</i></label>
+                     <textarea class="form-control glass" id="summaryText" name="profile" rows="10"></textarea>
                  </div>
                  <div class="text-end">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -281,25 +315,16 @@
 
     <!-- Error Toast -->
     <div class="toast-container position-fixed top-0 end-0 p-3">
-      <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" style="background: rgba(30, 30, 30, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: white;">
-        <div class="toast-header" style="background: rgba(255, 255, 255, 0.1); color: white; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+      <div id="errorToast" class="toast glass" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header glass">
           <strong class="me-auto">Notification</strong>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
         <div class="toast-body" id="errorToastBody">
           <!-- Error message -->
         </div>
       </div>
     </div>
-
-    <!-- Data for diagram switching -->
-    <script>
-        const diagramVersions = {
-            {% for diagram in diagrams %}
-                "{{ diagram.id }}": `{{ diagram.content|escapejs }}`,
-            {% endfor %}
-        };
-    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -310,6 +335,7 @@
             const conversationId = "{{ conversation.id }}";
             const csrfToken = "{{ csrf_token }}";
 
+            // --- Chat Logic ---
             // Auto-resize input
             if (chatInput) {
                 chatInput.addEventListener('input', function() {
@@ -317,9 +343,9 @@
                     this.style.height = (this.scrollHeight) + 'px';
                 });
 
-                // Enter to send
-                chatInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                // Ctrl+Enter to send
+                chatInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
                         sendMessage();
                     }
@@ -333,14 +359,12 @@
             function scrollToBottom() {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
-            // Initial scroll
             scrollToBottom();
 
             // Render existing AI messages markdown
             document.querySelectorAll('.message-ai').forEach(el => {
                 if (typeof marked !== 'undefined') {
                     el.innerHTML = marked.parse(el.textContent);
-                    // Open links in new tab
                     el.querySelectorAll('a').forEach(a => {
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer';
@@ -352,12 +376,10 @@
                 const text = chatInput.value.trim();
                 if (!text) return;
 
-                // 1. Display User Message
                 appendMessage(text, 'user');
                 chatInput.value = '';
                 chatInput.style.height = 'auto';
 
-                // 2. Create AI Message Placeholder
                 const aiMessageDiv = appendMessage('', 'ai');
                 aiMessageDiv.innerHTML = '<em>Waiting response ...</em>';
                 let isFirstChunk = true;
@@ -389,17 +411,15 @@
                         if (done) break;
 
                         if (isFirstChunk) {
-                            aiMessageDiv.textContent = ''; // Clear waiting message
+                            aiMessageDiv.textContent = '';
                             isFirstChunk = false;
                         }
 
                         const chunk = decoder.decode(value, { stream: true });
                         fullResponseText += chunk;
 
-                        // Render Markdown
                         if (typeof marked !== 'undefined') {
                              aiMessageDiv.innerHTML = marked.parse(fullResponseText);
-                             // Open links in new tab
                              aiMessageDiv.querySelectorAll('a').forEach(a => {
                                  a.target = '_blank';
                                  a.rel = 'noopener noreferrer';
@@ -408,18 +428,13 @@
                              aiMessageDiv.textContent = fullResponseText;
                         }
                         scrollToBottom();
-
-                        // Throttle rendering to reduce CPU usage
                         await new Promise(r => setTimeout(r, 200));
                     }
-
                 } catch (error) {
-                    // Stop Markdown rendering for error
                     const errorSpan = document.createElement('div');
                     errorSpan.style.color = '#ff6b6b';
                     errorSpan.textContent = (isFirstChunk ? '' : '\n') + error.message;
                     aiMessageDiv.appendChild(errorSpan);
-
                     scrollToBottom();
                 }
             }
@@ -433,21 +448,125 @@
                 return div;
             }
 
-            // Diagram switching logic
+            // --- Unified Diagram Loading Logic ---
             const diagramSelect = document.getElementById('diagramSelect');
             const diagramFrame = document.getElementById('diagramFrame');
+            const emptyState = document.getElementById('emptyState');
 
-            if (diagramSelect && diagramFrame && typeof diagramVersions !== 'undefined') {
-                diagramSelect.addEventListener('change', function() {
-                    const selectedId = this.value;
-                    const content = diagramVersions[selectedId];
-                    if (content) {
-                        diagramFrame.srcdoc = content;
+            let currentDiagramData = null;
+
+            async function loadDiagram(diagramId) {
+                if (!diagramId || diagramId === 'No Diagram') return;
+                try {
+                    const response = await fetch(`/Conversation/diagram/${diagramId}/`);
+                    if (!response.ok) {
+                        // Server error
+                        const errorData = await response.json();
+                        throw new Error(errorData.error);
+                    }
+                    const data = await response.json();
+                    currentDiagramData = data;
+
+                    if (diagramFrame) {
+                        diagramFrame.srcdoc = data.content;
+                        if (emptyState) emptyState.remove();
+                    }
+                } catch (e) {
+                    // Server error + Network error
+                    console.error(e);
+                    showErrorToast(e.message);
+                }
+            }
+
+            // --- Download Handlers ---
+            function downloadString(text, fileType, fileName) {
+                const blob = new Blob([text], { type: fileType });
+                const a = document.createElement('a');
+                a.download = fileName;
+                a.href = URL.createObjectURL(blob);
+                a.style.display = "none";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+            }
+
+            const downloadHtmlBtn = document.getElementById('downloadHtml');
+            if (downloadHtmlBtn) {
+                downloadHtmlBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!currentDiagramData) return showErrorToast("No diagram loaded.");
+                    downloadString(currentDiagramData.content, "text/html", `diagram_${currentDiagramData.id}.html`);
+                });
+            }
+
+            const downloadSourceBtn = document.getElementById('downloadSource');
+            if (downloadSourceBtn) {
+                 downloadSourceBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!currentDiagramData) return showErrorToast("No diagram loaded.");
+                    downloadString(currentDiagramData.source_code, "text/plain", currentDiagramData.file_name);
+                });
+            }
+
+            const downloadImageBtn = document.getElementById('downloadImage');
+            if (downloadImageBtn) {
+                downloadImageBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if (!currentDiagramData) return showErrorToast("No diagram loaded.");
+
+                    const iframe = document.getElementById('diagramFrame');
+                    if (!iframe) return showErrorToast("Diagram frame not found.");
+
+                    if (typeof html2canvas === 'undefined') {
+                        return showErrorToast("Image capture library not loaded.");
+                    }
+
+                    const originalHtml = downloadImageBtn.innerHTML;
+                    downloadImageBtn.innerHTML = 'Wait...';
+
+                    try {
+                        const doc = iframe.contentDocument || iframe.contentWindow.document;
+                        const body = doc.body;
+
+                        // Use html2canvas to capture the iframe body
+                        // We use a slightly higher scale for better quality
+                        const canvas = await html2canvas(body, {
+                            scale: Math.max(window.devicePixelRatio, 2),
+                            useCORS: true,
+                            logging: false
+                        });
+
+                        const imgData = canvas.toDataURL("image/png");
+                        const link = document.createElement('a');
+                        link.download = `diagram_${currentDiagramData.id}.png`;
+                        link.href = imgData;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                    } catch (error) {
+                        console.error(error);
+                        showErrorToast("Failed to capture image: " + error.message);
+                    } finally {
+                        downloadImageBtn.innerHTML = originalHtml;
                     }
                 });
             }
 
-            // Confirm Diagram Logic
+            // 1. Initial Load: If there is a selected value on page load, fetch it
+            if (diagramSelect && diagramSelect.value && diagramSelect.value !== 'No Diagram') {
+                loadDiagram(diagramSelect.value);
+            }
+
+            // 2. Switching Versions
+            if (diagramSelect) {
+                diagramSelect.addEventListener('change', function() {
+                    loadDiagram(this.value);
+                });
+            }
+
+            // 3. Diagram Creation Logic
             const diagramForm = document.getElementById('diagramForm');
             if (diagramForm) {
                 diagramForm.addEventListener('submit', async function(e) {
@@ -464,43 +583,40 @@
                         const response = await fetch(diagramForm.action, {
                             method: 'POST',
                             body: formData,
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
                         });
-                        
                         const responseData = await response.json();
 
                         if (!response.ok) {
                             throw new Error(responseData.error || 'Failed to create diagram');
                         }
 
-                        // Success - Update UI without reload
-                        if (responseData.diagram && typeof diagramVersions !== 'undefined') {
-                            // Update data
-                            diagramVersions[responseData.diagram.id] = responseData.diagram.content;
+                        if (responseData.diagram) {
+                            // Update global data
+                            currentDiagramData = responseData.diagram;
 
-                            // Update Select
-                             const diagramSelect = document.getElementById('diagramSelect');
+                            // Update Dropdown
                              if (diagramSelect) {
-                                  // Remove "No Diagram" if exists
                                   if (diagramSelect.options.length > 0 && diagramSelect.options[0].textContent === 'No Diagram') {
                                       diagramSelect.innerHTML = '';
                                       diagramSelect.disabled = false;
+                                      if (emptyState) emptyState.remove();
                                   }
                                   
                                   const option = document.createElement('option');
                                   option.value = responseData.diagram.id;
-                                  option.textContent = `Version ${Object.keys(diagramVersions).length}`;
+                                  option.textContent = `Version ${diagramSelect.options.length + 1}`;
                                   option.selected = true;
                                   diagramSelect.appendChild(option);
-                                  
-                                  // Trigger update
-                                  diagramSelect.dispatchEvent(new Event('change'));
+                             }
+
+                             // Update Iframe directly (No need to fetch again)
+                             if (diagramFrame) {
+                                  diagramFrame.srcdoc = responseData.diagram.content;
                              }
                         }
                         
-                        // Hide Modal
+                        // Close Modal
                         const summaryModalEl = document.getElementById('summaryModal');
                         const summaryModal = bootstrap.Modal.getInstance(summaryModalEl);
                         if (summaryModal) {
@@ -508,29 +624,23 @@
                         }
 
                     } catch (error) {
-                        const errorToastEl = document.getElementById('errorToast');
-                        const errorToastBody = document.getElementById('errorToastBody');
-                        if (errorToastEl && errorToastBody) {
-                             errorToastBody.textContent = error.message;
-                             const toast = bootstrap.Toast.getOrCreateInstance(errorToastEl);
-                             toast.show();
-                        } else {
-                             alert(error.message);
-                        }
-
+                        showErrorToast(error.message);
                         // Reset button
                         submitBtn.textContent = originalText;
                         submitBtn.disabled = false;
+                    } finally {
+                         // Reset button state if success
+                         if (!submitBtn.disabled) return; // handled in catch
+                         submitBtn.textContent = originalText;
+                         submitBtn.disabled = false;
                     }
                 });
             }
 
-            // Generate Diagram Logic
+            // --- Generate Summary Logic ---
             const generateBtn = document.getElementById('generateDiagramBtn');
-
             if (generateBtn) {
                 generateBtn.addEventListener('click', async function() {
-                    // Show loading state
                     const originalText = generateBtn.textContent;
                     generateBtn.textContent = 'Summarizing...';
                     generateBtn.disabled = true;
@@ -538,9 +648,7 @@
                     try {
                         const response = await fetch("{% url 'generate_summary' conversation.id %}", {
                             method: 'POST',
-                            headers: {
-                                'X-CSRFToken': csrfToken
-                            }
+                            headers: { 'X-CSRFToken': csrfToken }
                         });
 
                         if (!response.ok) {
@@ -557,20 +665,24 @@
                         summaryModal.show();
 
                     } catch (error) {
-                        const errorToastEl = document.getElementById('errorToast');
-                        const errorToastBody = document.getElementById('errorToastBody');
-                        if (errorToastEl && errorToastBody) {
-                             errorToastBody.textContent = error.message;
-                             const toast = bootstrap.Toast.getOrCreateInstance(errorToastEl);
-                             toast.show();
-                        } else {
-                             alert(error.message);
-                        }
+                        showErrorToast(error.message);
                     } finally {
                         generateBtn.textContent = originalText;
                         generateBtn.disabled = false;
                     }
                 });
+            }
+
+            function showErrorToast(message) {
+                const errorToastEl = document.getElementById('errorToast');
+                const errorToastBody = document.getElementById('errorToastBody');
+                if (errorToastEl && errorToastBody) {
+                     errorToastBody.textContent = message;
+                     const toast = bootstrap.Toast.getOrCreateInstance(errorToastEl);
+                     toast.show();
+                } else {
+                     alert(message);
+                }
             }
         });
     </script>

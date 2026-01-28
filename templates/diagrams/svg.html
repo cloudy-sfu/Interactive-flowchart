@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SVG Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #ffffff;
+            font-family: sans-serif;
+        }
+
+        #viewport {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            cursor: grab;
+            position: relative;
+            /* Flexbox ensures the graph is centered initially */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #viewport:active {
+            cursor: grabbing;
+        }
+
+        #graph {
+            transform-origin: 0 0;
+            display: inline-block;
+        }
+
+        /* 
+           Dark Mode Handling:
+           Inverts luminance (white background -> black) but rotates hue back 
+           so colors (red, blue, etc.) remain approximately the same.
+        */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #000000;
+            }
+            #graph {
+                filter: invert(1) hue-rotate(180deg);
+            }
+        }
+
+        /* Ensure the injected SVG behaves well */
+        #graph svg {
+            display: block;
+            background-color: transparent;
+            max-width: none; /* Prevent SVG from shrinking arbitrarily */
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewport">
+        <div id="graph"></div>
+    </div>
+
+    <!-- Safely pass the SVG string to JS -->
+    <div id="svg-data" style="display: none">{{ svg_code|json_script:"svg-data" }}</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const viewport = document.getElementById('viewport');
+            const graph = document.getElementById('graph');
+            const dataElement = document.getElementById('svg-data');
+
+            // --- Pan & Zoom Logic ---
+            let scale = 1;
+            let translateX = 0;
+            let translateY = 0;
+            
+            const MIN_SCALE = 0.1;
+            const MAX_SCALE = 20;
+            const ZOOM_SENSITIVITY = 0.001;
+
+            let isPanning = false;
+            let startX = 0;
+            let startY = 0;
+
+            function updateTransform() {
+                graph.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            }
+
+            function centerGraph() {
+                // If the graph has content, center it in the viewport
+                const rect = graph.getBoundingClientRect();
+                const viewportRect = viewport.getBoundingClientRect();
+
+                if (rect.width === 0 || rect.height === 0) return;
+
+                // Reset scale to 1 or fit-to-screen if needed, currently keeping 1
+                // Calculate center offsets
+                translateX = (viewportRect.width - rect.width / scale * scale) / 2;
+                translateY = (viewportRect.height - rect.height / scale * scale) / 2;
+                
+                updateTransform();
+            }
+
+            function zoomAtPoint(newScale, clientX, clientY) {
+                newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+
+                const viewportRect = viewport.getBoundingClientRect();
+                const mouseX = clientX - viewportRect.left;
+                const mouseY = clientY - viewportRect.top;
+
+                // Calculate the point on the graph under the mouse
+                const graphX = (mouseX - translateX) / scale;
+                const graphY = (mouseY - translateY) / scale;
+
+                scale = newScale;
+
+                // Adjust translate to keep the point under the mouse fixed
+                translateX = mouseX - graphX * scale;
+                translateY = mouseY - graphY * scale;
+
+                updateTransform();
+            }
+
+            // Event Listeners
+            viewport.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const delta = -e.deltaY * ZOOM_SENSITIVITY;
+                const newScale = scale * (1 + delta);
+                zoomAtPoint(newScale, e.clientX, e.clientY);
+            }, { passive: false });
+
+            viewport.addEventListener('mousedown', function(e) {
+                if (e.button !== 0) return;
+                isPanning = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                viewport.style.cursor = 'grabbing';
+            });
+
+            viewport.addEventListener('mousemove', function(e) {
+                if (!isPanning) return;
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateTransform();
+            });
+
+            viewport.addEventListener('mouseup', function() {
+                isPanning = false;
+                viewport.style.cursor = 'grab';
+            });
+            
+            viewport.addEventListener('mouseleave', function() {
+                isPanning = false;
+                viewport.style.cursor = 'grab';
+            });
+
+            // Touch Support
+            let lastTouchDistance = 0;
+
+            viewport.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 1) {
+                    isPanning = true;
+                    startX = e.touches[0].clientX - translateX;
+                    startY = e.touches[0].clientY - translateY;
+                } else if (e.touches.length === 2) {
+                    isPanning = false;
+                    lastTouchDistance = Math.hypot(
+                        e.touches[1].clientX - e.touches[0].clientX,
+                        e.touches[1].clientY - e.touches[0].clientY
+                    );
+                }
+            }, { passive: true });
+
+            viewport.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                if (e.touches.length === 1 && isPanning) {
+                    translateX = e.touches[0].clientX - startX;
+                    translateY = e.touches[0].clientY - startY;
+                    updateTransform();
+                } else if (e.touches.length === 2) {
+                    const currentDistance = Math.hypot(
+                        e.touches[1].clientX - e.touches[0].clientX,
+                        e.touches[1].clientY - e.touches[0].clientY
+                    );
+                    const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    const scaleFactor = currentDistance / lastTouchDistance;
+                    
+                    zoomAtPoint(scale * scaleFactor, centerX, centerY);
+                    lastTouchDistance = currentDistance;
+                }
+            }, { passive: false });
+
+            viewport.addEventListener('touchend', () => isPanning = false);
+
+            // --- Render Logic ---
+            if (dataElement) {
+                try {
+                    const svgContent = JSON.parse(dataElement.textContent);
+                    // Inject the SVG
+                    graph.innerHTML = svgContent;
+
+                    // Ensure the injected SVG has width/height attributes or viewBox
+                    // to play nicely with layout, if missing.
+                    const svg = graph.querySelector('svg');
+                    if (svg) {
+                        // Wait slightly for DOM render to calculate bounds for centering
+                        setTimeout(centerGraph, 50);
+                    } else {
+                        graph.innerText = "No SVG tag found in response.";
+                    }
+                } catch (e) {
+                    console.error("Error parsing SVG data:", e);
+                    graph.innerText = "Error rendering SVG.";
+                }
+            }
+
+            window.addEventListener('resize', centerGraph);
+        });
+    </script>
+</body>
+</html>

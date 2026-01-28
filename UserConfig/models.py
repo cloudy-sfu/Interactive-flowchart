@@ -4,11 +4,13 @@ from django.contrib.auth.models import User
 
 
 class ModelKey(models.Model):
-    name = models.CharField(max_length=128, blank=False, unique=True)
+    name = models.CharField(max_length=128, unique=True)
     model_provider = models.CharField(
         max_length=32, default=settings.CONFIG['default_model_provider'])
     model_id = models.CharField(
         max_length=64, default=settings.CONFIG['default_model_id'])
+    quick_model_id = models.CharField(
+        max_length=64, default=settings.CONFIG['quick_model_id'])
     model_api_key = models.TextField(blank=False)
 
     def __str__(self):

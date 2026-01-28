@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Draw.io Diagram</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #ffffff;
+            font-family: sans-serif;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #graph {
+            /* Use Flexbox for centering */
+            display: flex;
+            
+            /* Enable scrolling for large diagrams */
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            
+            /* Add padding to container so the graph never touches the edges */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        #graph:active {
+            cursor: grabbing;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #000000;
+            }
+            #graph {
+                filter: invert(1) hue-rotate(180deg);
+            }
+            #graph[data-theme="dark"] {
+                filter: none;
+            }
+        }
+
+        .mxgraph {
+            /* 'margin: auto' inside a flex container centers the item safely.
+               If it overflows, it aligns to top-left, preventing data loss at the top. */
+            margin: auto;
+            
+            max-width: 100%;
+            border: 1px solid transparent;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #888;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading diagram...</div>
+    <div id="graph"></div>
+
+    {{ drawio_xml|json_script:"drawio-data" }}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const graphDiv = document.getElementById('graph');
+            const dataElement = document.getElementById('drawio-data');
+            const loading = document.getElementById('loading');
+
+            if (!dataElement) {
+                loading.textContent = "No diagram data found.";
+                return;
+            }
+
+            try {
+                const rawXml = JSON.parse(dataElement.textContent);
+                
+                const config = {
+                    highlight: '#0000ff',
+                    nav: true,
+                    resize: true,
+                    // Toolbar removed to prevent UI glitches and moving icons
+                    lightbox: false, 
+                    edit: null,
+                    xml: rawXml
+                };
+
+                const mxDiv = document.createElement('div');
+                mxDiv.className = 'mxgraph';
+                mxDiv.style.maxWidth = '100%';
+                
+                mxDiv.setAttribute('data-mxgraph', JSON.stringify(config));
+                
+                graphDiv.appendChild(mxDiv);
+
+                const script = document.createElement('script');
+                script.src = "https://viewer.diagrams.net/js/viewer-static.min.js";
+                
+                script.onload = function() {
+                    loading.style.display = 'none';
+                    // Optional: SVG display tweak to ensure clean rendering inside the div
+                    setTimeout(() => {
+                        const svg = mxDiv.querySelector('svg');
+                        if (svg) {
+                            svg.style.display = 'block';
+                            svg.style.margin = '0 auto';
+                        }
+                    }, 500);
+                };
+
+                script.onerror = function() {
+                    loading.textContent = "Failed to load diagram viewer.";
+                    loading.style.color = "red";
+                };
+
+                document.head.appendChild(script);
+
+            } catch (e) {
+                console.error("Setup failed:", e);
+                loading.textContent = "Error preparing diagram: " + e.message;
+            }
+        });
+    </script>
+</body>
+</html>

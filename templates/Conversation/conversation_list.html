@@ -10,9 +10,6 @@
     <link rel="stylesheet" href="{% static 'css/glassmorphism.css' %}">
     <style>
         body {
-            background-color: #1a1a1a;
-            color: white;
-            min-height: 100vh;
             margin: 0;
             font-family: Arial, sans-serif;
         }
@@ -28,14 +25,7 @@
         }
         .card-meta {
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6); /* Weaken emphasis */
-        }
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 1rem 0;
-            margin-bottom: 2rem;
+            opacity: 0.7;
         }
         .btn-custom {
             padding: 10px 20px;
@@ -53,16 +43,18 @@
             color: white;
         }
         .btn-secondary-custom {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--glass-text);
         }
         .btn-secondary-custom:hover {
-             background-color: rgba(255, 255, 255, 0.2);
+             background-color: var(--glass-btn-hover-bg);
+             color: var(--glass-text);
         }
         .btn-delete {
-            color: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--glass-text);
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             border-radius: 50%;
@@ -73,6 +65,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
         }
         .btn-delete:hover {
             color: white;
@@ -80,14 +73,18 @@
             border-color: rgba(220, 53, 69, 0.5);
             box-shadow: 0 0 15px rgba(220, 53, 69, 0.4);
             transform: rotate(90deg);
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar-custom">
+    <nav class="navbar glass mb-4">
         <div class="container d-flex justify-content-between align-items-center" style="padding-top: 0; padding-bottom: 0;">
-            <a href="#" class="text-white text-decoration-none h4 mb-0">Interactive Flowchart</a>
+            <a href="#" class="text-glass text-decoration-none h4 mb-0">Interactive Flowchart</a>
             <div>
+                {% if user.is_staff %}
+                    <a href="/admin" class="btn-custom btn-secondary-custom me-2">Admin</a>
+                {% endif %}
                 <a href="{% url 'logout' %}" class="btn-custom btn-secondary-custom">Logout</a>
             </div>
         </div>
@@ -95,18 +92,25 @@
 
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="text-white mb-0">Your Conversations</h2>
-            <a href="{% url 'create_conversation' %}" class="btn-custom">New Conversation</a>
+            <h3 class="mb-0">Conversations</h3>
         </div>
 
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <div class="col">
+                <a class="card glass h-100 position-relative" href="{% url 'create_conversation' %}"
+                   style="text-decoration: none;">
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <span class="text-glass fst-italic text-center">Create a new conversation</span>
+                    </div>
+                </a>
+            </div>
             {% for conversation in conversations %}
             <div class="col">
                 <div class="card glass h-100 position-relative">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <h5 class="card-title text-truncate me-2">
-                                <a href="{% url 'conversation_detail' conversation.id %}" class="text-decoration-none text-white stretched-link">
+                                <a href="{% url 'conversation_detail' conversation.id %}" class="text-decoration-none text-glass stretched-link">
                                     {{ conversation.title|default:"New conversation" }}
                                 </a>
                             </h5>
@@ -119,21 +123,15 @@
                         </div>
                         <div class="card-text mt-3">
                             <div class="card-meta">
-                                Created: <span class="local-time" data-timestamp="{{ conversation.created_time|date:'c' }}">{{ conversation.created_time }}</span>
+                                Created:
+                                <span class="local-time" data-timestamp="{{ conversation.created_time|date:'c' }}"></span>
                             </div>
                             <div class="card-meta">
-                                Modified: <span class="local-time" data-timestamp="{{ conversation.modified_time|date:'c' }}">{{ conversation.modified_time }}</span>
+                                Modified:
+                                <span class="local-time" data-timestamp="{{ conversation.modified_time|date:'c' }}"></span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="col-12">
-                <div class="card glass p-5 text-center">
-                    <h3 class="mb-3">No conversations found</h3>
-                    <p class="mb-4 text-white-50">Get started by creating your first conversation.</p>
-                    <a href="#" class="btn-custom">Create Conversation</a>
                 </div>
             </div>
             {% endfor %}
@@ -147,8 +145,8 @@
                 const timestamp = el.getAttribute('data-timestamp');
                 if (timestamp) {
                     const date = new Date(timestamp);
-                    // Use browser default locale and time zone
-                    el.textContent = date.toLocaleString();
+                    // Mock ISO + GMT time zone
+                    el.textContent = date.toLocaleString('sv-SE', {timeZoneName: 'shortOffset'});
                 }
             });
         });
