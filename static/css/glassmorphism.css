@@ -1,0 +1,142 @@
+/* Glassmorphism CSS for Bootstrap 5.3 */
+
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --glass-blur: 8px;
+    --glass-text: #fff;
+    --glass-input-bg: rgba(255, 255, 255, 0.1);
+    --glass-input-focus-bg: rgba(255, 255, 255, 0.2);
+}
+
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    color: var(--glass-text);
+}
+
+.glass-rounded {
+    border-radius: 10px;
+}
+
+/* Bootstrap Card Extension */
+.card.glass {
+    background: var(--glass-bg); /* Bootstrap cards have white bg by default */
+    border-radius: 10px;
+}
+
+.card.glass .card-header,
+.card.glass .card-footer {
+    border-bottom: 1px solid var(--glass-border);
+    border-top: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.card.glass .card-text, .card.glass .card-title {
+    color: var(--glass-text);
+}
+
+/* Glass Buttons */
+.btn-glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--glass-text);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
+}
+
+.btn-glass:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Glass Inputs */
+.form-control.glass,
+.form-select.glass {
+    background: var(--glass-input-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--glass-text);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.form-control.glass:focus,
+.form-select.glass:focus {
+    background: var(--glass-input-focus-bg);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: var(--glass-text);
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.15);
+}
+
+.form-control.glass::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Navbar support */
+.navbar.glass {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.navbar.glass .nav-link {
+    color: var(--glass-text) !important;
+}
+
+.navbar.glass .nav-link:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.navbar.glass .navbar-brand {
+    color: var(--glass-text) !important;
+}
+
+/* Modal support */
+.modal-content.glass {
+    background: rgba(40, 40, 40, 0.65); /* Darker base for modals */
+    border: 1px solid var(--glass-border);
+}
+
+.modal-content.glass .modal-header,
+.modal-content.glass .modal-footer {
+    border-color: var(--glass-border);
+}
+
+/* Dropdown menu */
+.dropdown-menu.glass {
+    background: rgba(255, 255, 255, 0.9); /* More opaque */
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+}
+
+.dropdown-menu.glass .dropdown-item {
+     color: #333; /* Dark text for dropdowns usually */
+}
+.dropdown-menu.glass .dropdown-item:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Utility to force text color if needed */
+.text-glass {
+    color: var(--glass-text) !important;
+}
+
+/* Dark variant override */
+.glass-dark {
+    --glass-bg: rgba(0, 0, 0, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-text: #ddd;
+    --glass-input-bg: rgba(0, 0, 0, 0.3);
+    --glass-input-focus-bg: rgba(0, 0, 0, 0.5);
+}

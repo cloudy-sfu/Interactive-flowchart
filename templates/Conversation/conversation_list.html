@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{% static 'css/glassmorphism.css' %}">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .card.glass {
+            transition: transform 0.2s;
+        }
+        .card.glass:hover {
+            transform: translateY(-5px);
+        }
+        .card-meta {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6); /* Weaken emphasis */
+        }
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .btn-custom {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+        .btn-custom:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+        .btn-secondary-custom {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-secondary-custom:hover {
+             background-color: rgba(255, 255, 255, 0.2);
+        }
+        .btn-delete {
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-delete:hover {
+            color: white;
+            background: rgba(220, 53, 69, 0.8);
+            border-color: rgba(220, 53, 69, 0.5);
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.4);
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar-custom">
+        <div class="container d-flex justify-content-between align-items-center" style="padding-top: 0; padding-bottom: 0;">
+            <a href="#" class="text-white text-decoration-none h4 mb-0">Interactive Flowchart</a>
+            <div>
+                <a href="{% url 'logout' %}" class="btn-custom btn-secondary-custom">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-white mb-0">Your Conversations</h2>
+            <a href="{% url 'create_conversation' %}" class="btn-custom">New Conversation</a>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for conversation in conversations %}
+            <div class="col">
+                <div class="card glass h-100 position-relative">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-truncate me-2">
+                                <a href="{% url 'conversation_detail' conversation.id %}" class="text-decoration-none text-white stretched-link">
+                                    {{ conversation.title|default:"New conversation" }}
+                                </a>
+                            </h5>
+                            <form action="{% url 'delete_conversation' conversation.id %}" method="post" class="position-relative" style="z-index: 2;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-delete" onclick="return confirm('Are you sure you want to delete this conversation?');" title="Delete conversation">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="card-text mt-3">
+                            <div class="card-meta">
+                                Created: <span class="local-time" data-timestamp="{{ conversation.created_time|date:'c' }}">{{ conversation.created_time }}</span>
+                            </div>
+                            <div class="card-meta">
+                                Modified: <span class="local-time" data-timestamp="{{ conversation.modified_time|date:'c' }}">{{ conversation.modified_time }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card glass p-5 text-center">
+                    <h3 class="mb-3">No conversations found</h3>
+                    <p class="mb-4 text-white-50">Get started by creating your first conversation.</p>
+                    <a href="#" class="btn-custom">Create Conversation</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeElements = document.querySelectorAll('.local-time');
+            timeElements.forEach(el => {
+                const timestamp = el.getAttribute('data-timestamp');
+                if (timestamp) {
+                    const date = new Date(timestamp);
+                    // Use browser default locale and time zone
+                    el.textContent = date.toLocaleString();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
