@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mermaid Viewer</title>
+    <!-- Ref: https://cdn.jsdelivr.net/npm/mermaid/ -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f0f0;
+            font-family: sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Toolbar ── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #ccc;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        #toolbar label {
+            cursor: pointer;
+            padding: 6px 14px;
+            background: #4a90d9;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background .2s;
+        }
+        #toolbar label:hover { background: #357abd; }
+        #file-input { display: none; }
+        #file-name {
+            font-size: 13px;
+            color: #555;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tb-btn {
+            cursor: pointer;
+            width: 32px; height: 32px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            font-size: 18px;
+            line-height: 30px;
+            text-align: center;
+            user-select: none;
+            transition: background .15s;
+        }
+        .tb-btn:hover { background: #e8e8e8; }
+
+        /* ── Viewport ── */
+        #viewport {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+        }
+        #viewport.grabbing { cursor: grabbing; }
+
+        #canvas {
+            position: absolute;
+            top: 0; left: 0;
+            transform-origin: 0 0;
+        }
+
+        /* ── Diagram container ── */
+        #diagram-container {
+            display: none;
+            padding: 24px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+        }
+        #diagram-container.has-diagram {
+            display: inline-block;
+        }
+        #diagram-container .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ── Drop overlay ── */
+        #drop-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(74, 144, 217, .18);
+            border: 4px dashed #4a90d9;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #4a90d9;
+            pointer-events: none;
+        }
+        #drop-overlay.visible { display: flex; }
+
+        /* ── Placeholder ── */
+        #placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 16px;
+            gap: 8px;
+            pointer-events: none;
+        }
+        #placeholder .icon { font-size: 48px; }
+
+        /* ── Zoom indicator ── */
+        #zoom-level {
+            font-size: 12px;
+            color: #888;
+            min-width: 48px;
+            text-align: center;
+        }
+
+        /* ── Dark mode ── */
+        @media (prefers-color-scheme: dark) {
+            body { background: #1e1e1e; }
+            #toolbar { background: #2a2a2a; border-color: #444; }
+            #file-name { color: #aaa; }
+            .tb-btn { background: #333; border-color: #555; color: #ddd; }
+            .tb-btn:hover { background: #444; }
+            #diagram-container { background: #2a2a2a; box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+            #placeholder { color: #666; }
+            #zoom-level { color: #666; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <label for="file-input">📂 Open .mmd</label>
+        <input type="file" id="file-input" accept=".mmd,.mermaid,.md,.txt">
+        <span id="file-name">No file loaded</span>
+        <span id="zoom-level">100%</span>
+        <button class="tb-btn" id="btn-zoom-in" title="Zoom In">+</button>
+        <button class="tb-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+        <button class="tb-btn" id="btn-reset" title="Reset View">⌂</button>
+    </div>
+
+    <!-- Viewport (pan & zoom area) -->
+    <div id="viewport">
+        <div id="placeholder">
+            <div class="icon">📄</div>
+            <div>Drop a <strong>.mmd</strong> file here or click <em>Open</em></div>
+        </div>
+        <div id="canvas">
+            <div id="diagram-container">
+                <div class="mermaid" id="mermaid-target"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drag-and-drop overlay -->
+    <div id="drop-overlay">Drop .mmd file to preview</div>
+
+<script>
+(() => {
+    // ── State ──
+    let scale    = 1;
+    let panX     = 0;
+    let panY     = 0;
+    let isPanning = false;
+    let startX, startY, startPanX, startPanY;
+
+    const ZOOM_STEP   = 0.15;
+    const ZOOM_MIN    = 0.05;
+    const ZOOM_MAX    = 50;
+
+    // ── Elements ──
+    const viewport    = document.getElementById('viewport');
+    const canvas      = document.getElementById('canvas');
+    const target      = document.getElementById('mermaid-target');
+    const container   = document.getElementById('diagram-container');
+    const fileInput   = document.getElementById('file-input');
+    const fileName    = document.getElementById('file-name');
+    const zoomLevel   = document.getElementById('zoom-level');
+    const placeholder = document.getElementById('placeholder');
+    const dropOverlay = document.getElementById('drop-overlay');
+
+    // ── Mermaid init ──
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({
+        startOnLoad: false,
+        theme: prefersDark ? 'dark' : 'default',
+        themeVariables: { fontFamily: 'sans-serif' },
+        securityLevel: 'loose'
+    });
+
+    // ── Render ──
+    async function renderMermaid(code) {
+        placeholder.style.display = 'none';
+        // Ref: https://mermaid.js.org/config/usage.html#api-usage
+        try {
+            const id = 'mmd-' + Date.now();
+            const { svg } = await mermaid.render(id, code.trim());
+            target.innerHTML = svg;
+
+            // Unlock SVG intrinsic size constraints so CSS-transform zoom
+            // actually scales the rendered vectors, not a tiny fixed-size box.
+            const svgEl = target.querySelector('svg');
+            if (svgEl) {
+                svgEl.removeAttribute('width');
+                svgEl.removeAttribute('height');
+                svgEl.style.maxWidth  = 'none';
+                svgEl.style.width     = '';
+                svgEl.style.height    = '';
+
+                // Use the viewBox to set a natural size via CSS so the
+                // diagram has a reasonable base size before any zoom.
+                const vb = svgEl.getAttribute('viewBox');
+                if (vb) {
+                    const parts = vb.split(/[\s,]+/).map(Number);
+                    if (parts.length === 4) {
+                        svgEl.style.width  = parts[2] + 'px';
+                        svgEl.style.height = parts[3] + 'px';
+                    }
+                }
+            }
+
+            container.classList.add('has-diagram');
+            resetView();
+        } catch (err) {
+            target.innerHTML = '<pre style="color:red;padding:16px;white-space:pre-wrap;">'
+                + 'Render Error:\n' + escapeHtml(err.message || String(err)) + '</pre>';
+            container.classList.add('has-diagram');
+            resetView();
+        }
+    }
+
+    function escapeHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── File handling ──
+    function handleFile(file) {
+        if (!file) return;
+        fileName.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = e => renderMermaid(e.target.result);
+        reader.readAsText(file);
+    }
+
+    fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+    // ── Drag & drop ──
+    let dragCounter = 0;
+    document.addEventListener('dragenter', e => { e.preventDefault(); dragCounter++; dropOverlay.classList.add('visible'); });
+    document.addEventListener('dragleave', e => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; dropOverlay.classList.remove('visible'); }});
+    document.addEventListener('dragover',  e => e.preventDefault());
+    document.addEventListener('drop', e => {
+        e.preventDefault();
+        dragCounter = 0;
+        dropOverlay.classList.remove('visible');
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+    });
+
+    // ── Transform helpers ──
+    function applyTransform() {
+        canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        zoomLevel.textContent = Math.round(scale * 100) + '%';
+    }
+
+    function resetView() {
+        scale = 1;
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+        requestAnimationFrame(() => {
+            const dw = canvas.offsetWidth;
+            const dh = canvas.offsetHeight;
+            panX = Math.max(0, (vw - dw) / 2);
+            panY = Math.max(0, (vh - dh) / 2);
+            applyTransform();
+        });
+    }
+
+    // ── Zoom (around a focal point) ──
+    function zoomAt(newScale, focusX, focusY) {
+        newScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newScale));
+        const cx = (focusX - panX) / scale;
+        const cy = (focusY - panY) / scale;
+        scale = newScale;
+        panX = focusX - cx * scale;
+        panY = focusY - cy * scale;
+        applyTransform();
+    }
+
+    // ── Mouse wheel zoom ──
+    viewport.addEventListener('wheel', e => {
+        e.preventDefault();
+        const rect = viewport.getBoundingClientRect();
+        const fx = e.clientX - rect.left;
+        const fy = e.clientY - rect.top;
+        const direction = e.deltaY < 0 ? 1 : -1;
+        const factor = 1 + ZOOM_STEP;
+        const newScale = direction > 0 ? scale * factor : scale / factor;
+        zoomAt(newScale, fx, fy);
+    }, { passive: false });
+
+    // ── Mouse panning ──
+    viewport.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        isPanning = true;
+        startX = e.clientX; startY = e.clientY;
+        startPanX = panX;   startPanY = panY;
+        viewport.classList.add('grabbing');
+    });
+    window.addEventListener('mousemove', e => {
+        if (!isPanning) return;
+        panX = startPanX + (e.clientX - startX);
+        panY = startPanY + (e.clientY - startY);
+        applyTransform();
+    });
+    window.addEventListener('mouseup', () => {
+        isPanning = false;
+        viewport.classList.remove('grabbing');
+    });
+
+    // ── Touch panning & pinch-zoom ──
+    let lastTouchDist = null;
+    let lastTouchMid  = null;
+    let touchStartPanX, touchStartPanY;
+
+    viewport.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            isPanning = true;
+            startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+            touchStartPanX = panX; touchStartPanY = panY;
+        }
+        if (e.touches.length === 2) {
+            isPanning = false;
+            lastTouchDist = touchDist(e);
+            lastTouchMid  = touchMid(e);
+        }
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length === 1 && isPanning) {
+            panX = touchStartPanX + (e.touches[0].clientX - startX);
+            panY = touchStartPanY + (e.touches[0].clientY - startY);
+            applyTransform();
+        }
+        if (e.touches.length === 2 && lastTouchDist !== null) {
+            const dist = touchDist(e);
+            const mid  = touchMid(e);
+            const rect = viewport.getBoundingClientRect();
+            const newScale = scale * (dist / lastTouchDist);
+            zoomAt(newScale, mid.x - rect.left, mid.y - rect.top);
+            lastTouchDist = dist;
+            lastTouchMid  = mid;
+        }
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', () => {
+        isPanning = false;
+        lastTouchDist = null;
+        lastTouchMid  = null;
+    });
+
+    function touchDist(e) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        return Math.hypot(dx, dy);
+    }
+    function touchMid(e) {
+        return {
+            x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+    }
+
+    // ── Toolbar buttons ──
+    document.getElementById('btn-zoom-in').addEventListener('click', () => {
+        const rect = viewport.getBoundingClientRect();
+        zoomAt(scale * (1 + ZOOM_STEP), rect.width / 2, rect.height / 2);
+    });
+    document.getElementById('btn-zoom-out').addEventListener('click', () => {
+        const rect = viewport.getBoundingClientRect();
+        zoomAt(scale / (1 + ZOOM_STEP), rect.width / 2, rect.height / 2);
+    });
+    document.getElementById('btn-reset').addEventListener('click', resetView);
+
+    // ── Keyboard shortcuts ──
+    document.addEventListener('keydown', e => {
+        if (e.key === '=' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            document.getElementById('btn-zoom-in').click();
+        } else if (e.key === '-' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            document.getElementById('btn-zoom-out').click();
+        } else if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            resetView();
+        }
+    });
+
+    // ── Initial state ──
+    applyTransform();
+
+})();
+</script>
+</body>
+</html>

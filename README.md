@@ -137,3 +137,7 @@ This program supports the following renderers:
 -   $\LaTeX$ Tikz: https://tikz.net/
 -   Draw.io: https://app.diagrams.net/
 -   SVG: https://www.w3.org/TR/SVG/
+
+### Utilities
+
+To use utilities, visit https://cloudy-sfu.github.io/Interactive-flowchart/

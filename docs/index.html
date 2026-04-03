@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f0f0;
+            font-family: sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ── */
+        #header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #ccc;
+            flex-shrink: 0;
+        }
+        #header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* ── Card grid ── */
+        #cards {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 32px 24px;
+            max-width: 960px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+            padding: 28px 24px;
+            height: 10rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+            transition: box-shadow .2s, transform .15s;
+            cursor: pointer;
+        }
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,.14);
+            transform: translateY(-2px);
+        }
+        .card:active {
+            transform: translateY(0);
+        }
+
+        .card .icon {
+            font-size: 48px;
+            line-height: 1;
+        }
+        .card .name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+        }
+        .card .desc {
+            font-size: 13px;
+            color: #777;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* ── Dark mode ── */
+        @media (prefers-color-scheme: dark) {
+            body { background: #1e1e1e; }
+            #header { background: #2a2a2a; border-color: #444; }
+            #header h1 { color: #ddd; }
+            .card { background: #2a2a2a; box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+            .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.45); }
+            .card .name { color: #ddd; }
+            .card .desc { color: #999; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>🧰 Tools</h1>
+    </div>
+
+    <div id="cards">
+        <a class="card" href="mermaid_preview.html">
+            <div class="icon">📊</div>
+            <div class="name">Mermaid Viewer</div>
+            <div class="desc">Preview and explore Mermaid diagrams with pan &amp; zoom</div>
+        </a>
+    </div>
+
+</body>
+</html>
