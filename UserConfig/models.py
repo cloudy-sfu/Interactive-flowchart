@@ -10,7 +10,7 @@ class ModelKey(models.Model):
     model_id = models.CharField(
         max_length=64, default=settings.CONFIG['default_model_id'])
     quick_model_id = models.CharField(
-        max_length=64, default=settings.CONFIG['quick_model_id'])
+        max_length=64, default=settings.CONFIG['conv_title_model_id'])
     model_api_key = models.TextField(blank=False)
 
     def __str__(self):
