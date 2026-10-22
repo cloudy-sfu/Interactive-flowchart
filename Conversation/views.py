@@ -94,7 +94,8 @@ def chat_stream(request, conversation_id):
         chat = client.chats.create(
             model=model_key.model_id,
             config=types.GenerateContentConfig(
-                system_instruction=system_instruction['plan']
+                system_instruction=system_instruction['plan'],
+                tools=[types.Tool(google_search=types.GoogleSearch())]
             ),
             history=gemini_history
         )
